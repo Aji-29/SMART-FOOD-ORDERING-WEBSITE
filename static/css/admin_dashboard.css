@@ -1,0 +1,44 @@
+body{
+    min-height: 100vh;
+    background: #fff;
+    background-image: url("../img/food/lave.jpg");
+    backdrop-filter: blur(5px);
+}
+.text-center{
+    text-align: center;
+}
+
+.info.one{
+    background-color: #ffe2e6;
+}
+.info.two{
+    background-color: #dcfce7;
+}
+.info.three{
+    background-color: #f4e8ff;
+}
+.info{
+    padding: 10px;
+    margin-top: 20px;
+    border-radius: 5px;
+    /* border-bottom: 5px solid #3f5a9c; */
+}
+.info p{
+    color: #2f4d99;
+    margin-bottom: 0px;
+    font-size: 17px;
+    /* font-weight: bold; */
+    text-transform: capitalize;
+    /* margin-top: 4px; */
+}
+.info p.count{
+    color: #000000;
+    font-weight: bold;
+    font-size: 25px;
+    margin-bottom: 4px;
+}
+
+.cus-logout {
+    position: absolute;
+    right: 0;
+}

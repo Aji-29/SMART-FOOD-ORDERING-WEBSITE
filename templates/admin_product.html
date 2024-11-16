@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Product</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.dataTables.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark"> 
+        <a class="navbar-brand" href="#">Restaurant App</a> 
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="./dashboard">Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="./category-list">Category</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="./product">Products</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="./order">Orders</a>
+            </li>
+        </ul>
+        <a class="navbar-brand cus-logout" href="./logout">Logout</a> 
+    </nav>
+    <div class="container mt-5">
+        <h3 class="text-center mb-4">Product</h3>
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#productModal">Add Product</button>
+        <div class="row">
+            <div class="col-md-12">
+                <table id="myTable" class="display">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Product Name</th>
+                            <th>Category</th> 
+                            <th>Image</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody> 
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalLabel">Add Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <div class="mb-3">
+                            <label for="product_name" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="product_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category_id" class="form-label">Category</label>
+                            <select class="form-control" id="category_id" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="product_img" class="form-label">Product Image URL</label>
+                            <input type="text" class="form-control" id="product_img" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="product_price" class="form-label">Price</label>
+                            <input type="number" step="0.01" class="form-control" id="product_price" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="flag" class="form-label">Status</label>
+                            <select class="form-control" id="flag" required>
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                        
+                        <input type="hidden" id="product_id">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script> 
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script>
+        var MasterData = [];
+        var categories = [];
+        
+        $(document).ready(function () {
+            // Fetch categories and populate the dropdown
+            $.ajax({
+                type: "GET",
+                url: "../admin/categories",
+                success(data) {
+                    categories = data;
+                    var categoryDropdown = $('#category_id');
+                    categoryDropdown.empty();
+                    categoryDropdown.append('<option value="" selected>Select Category</option>');
+                    categories.forEach(function (category) {
+                        categoryDropdown.append('<option value="' + category.cat_id + '">' + category.name + '</option>');
+                    });
+                },
+                error() {
+                    console.log("Error fetching categories.");
+                }
+            });
+
+            // Fetch products and initialize DataTable
+            $.ajax({
+                type: "GET",
+                url: "../admin/product-list",
+                success(data) {
+                    MasterData = data;
+                    displayData();
+                },
+                error() {
+                    console.log("Error fetching products.");
+                }
+            });
+
+            function displayData() {
+                $("#myTable").DataTable({
+                    destroy: true,
+                    aaSorting: [],
+                    aaData: MasterData,
+                    aoColumns: [
+                        {
+                            mDataProp: null,
+                            render: function (data, type, row, meta) {
+                                return meta.row + 1;
+                            },
+                        },
+                        {
+                            mDataProp: "product_name",
+                        },
+                        {
+                            mDataProp: "category_name",
+                        },
+                        {
+                            mDataProp: function (data, type, full, meta) {
+                                return `<img src="${data.product_img}" style="width:200px;">`;
+                            },
+                        },
+                        {
+                            mDataProp: "product_price",
+                        },
+                        {
+                            mDataProp: function (data, type, full, meta) {
+                                return `${data.flag ? "<button class='btn btn-sm btn-success'>Active</button>" : "<button class='btn btn-sm btn-danger'>Inactive</button>"}`;
+                            },
+                        },
+                        {
+                            mDataProp: function (data, type, full, meta) {
+                                return `
+                                    <button id="${data.pid}" class="btn btnEdit btn-info">Edit</button>
+                                    <button id="${data.pid}" class="btn btnDelete btn-danger">Delete</button>`;
+                            },
+                        },
+                    ],
+                });
+            }
+
+            // Handle form submission for insert/update
+            $('#productForm').on('submit', function (e) {
+                e.preventDefault();
+                const productId = $('#product_id').val();
+                const url = productId ? '../admin/product/' + productId : '../admin/product';
+                const method = productId ? 'PUT' : 'POST';
+                const data = {
+                    product_name: $('#product_name').val(),
+                    category_id: $('#category_id').val(),
+                    product_img: $('#product_img').val(),
+                    product_price: $('#product_price').val(),
+                    flag: $('#flag').val(),
+                };
+
+                $.ajax({
+                    type: method,
+                    url: url,
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    success() {
+                        $('#productModal').modal('hide');
+                        location.reload();
+                    },
+                    error() {
+                        console.log("Error saving product.");
+                    }
+                });
+            });
+
+            // Handle edit button click
+            $('#myTable').on('click', '.btnEdit', function () {
+                const productId = $(this).attr('id');
+                const product = MasterData.find(p => p.pid == productId);
+                console.log(product);
+                $('#product_id').val(product.pid);
+                $('#product_name').val(product.product_name);
+                $('#category_id').val(product.category_id);
+                $('#product_img').val(product.product_img);
+                $('#product_price').val(product.product_price);
+                $('#flag').val(product.flag);
+                $('#productModal').modal('show');
+                $('#productModalLabel').text('Edit Product');
+            });
+
+            // Handle delete button click
+            $('#myTable').on('click', '.btnDelete', function () {
+                const productId = $(this).attr('id');
+
+                $.ajax({
+                    type: 'DELETE',
+                    url: '../admin/product/' + productId,
+                    success() {
+                        location.reload();
+                    },
+                    error() {
+                        console.log("Error deleting product.");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

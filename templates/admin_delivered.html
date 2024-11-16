@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Orders</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark"> 
+        <a class="navbar-brand" href="#">Restraunt App</a> 
+        <a class="navbar-brand cus-logout" href="./logout">Logout</a> 
+    </nav>
+    <div class="container mt-4">
+        <h2 class="text-center">Delivered Orders</h2>
+        <table class="table table-bordered" id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User Name</th>
+                    <th>Subtotal</th>
+                    <th>Order</th>
+                    <th>Payment Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Order rows will be inserted here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+   <!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" role="dialog" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderItemsTableBody">
+                        <!-- Order items will be inserted here dynamically -->
+                    </tbody>
+                </table>
+                <div>
+                    <p><strong>Subtotal:</strong> ₹<span id="orderSubtotal">0.00</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateStatusModalLabel">Update Status</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="updateStatusForm">
+                        <input type="hidden" id="statusOrderId">
+                        <div class="form-group">
+                            <label for="statusSelect">Select Status</label>
+                            <select class="form-control" id="statusSelect">
+                                <option value="Paid">Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="saveStatusBtn">Save changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        $(document).ready(function() {
+
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            // Verify connection and listen for the 'order_delivered' event
+            socket.on('connect', function() {
+                console.log('Connected to Socket.IO server');
+
+                // Optionally join a specific room
+                // Replace `user_id` with the actual user ID
+                socket.emit('join', 'common');
+            });
+
+            // Listen for the 'order_delivered' event
+            socket.on('delivered', function() {
+                getDeliveredOrders();
+            });
+
+            getDeliveredOrders();
+
+        });
+
+        function getDeliveredOrders() {
+            
+            // Fetch orders and populate the table
+            $.getJSON('/admin/get_delivered_orders', function(data) {
+                
+                let rows = '';
+                
+                data.orders.forEach(order => {
+
+                    var statusClass = '';
+                    switch(order[2]) {
+                        case 'Paid':
+                            statusClass = 'btn-success';
+                            break;
+                        case 'Unpaid':
+                            statusClass = 'btn-danger';
+                            break;
+                    }
+                    
+
+                    rows += `<tr>
+                        <td>${order[0]}</td>
+                        <td>${order[3]}</td>
+                        <td>${order[1]}</td>
+                        <td><button class="btn btn-info" onclick="showOrderDetails(${order[0]})">View Order</button></td>
+                        <td>
+                            <button class="btn ${statusClass}" onclick="openStatusModal(${order[0]}, '${order[2]}')">${order[2]}</button>
+                        </td>
+                    </tr>`;
+                });
+                $('#ordersTable tbody').html(rows);
+            });
+        }
+
+       // Show order details
+        function showOrderDetails(orderId) {
+            $.getJSON(`/admin/order_details/${orderId}`, function(data) {
+                let orderItemsHtml = '';
+                data.order_items.forEach(item => {
+                    orderItemsHtml += `<tr>
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>₹${item.total}</td>
+                    </tr>`;
+                });
+
+                $('#orderItemsTableBody').html(orderItemsHtml);
+                $('#orderSubtotal').text(data.subtotal);
+
+                $('#orderDetailsModal').modal('show');
+            });
+        }
+
+
+        // Open update status modal
+        function openStatusModal(orderId, currentStatus) {
+            $('#statusOrderId').val(orderId);
+            $('#statusSelect').val(currentStatus);
+            $('#updateStatusModal').modal('show');
+        }
+
+        // Update status
+        $('#saveStatusBtn').click(function() {
+            const orderId = $('#statusOrderId').val();
+            const newStatus = $('#statusSelect').val();
+
+            $.post('/admin/update_delivery_order_status', { order_id: orderId, status: newStatus }, function(response) {
+                $('#updateStatusModal').modal('hide');
+                alert('Status updated successfully!');
+                window.location.reload();
+                // Optionally, refresh the orders table
+            }).fail(function() {
+                alert('Failed to update status.');
+            });
+        });
+    </script>
+</body>
+</html>

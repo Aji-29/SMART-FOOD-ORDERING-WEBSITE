@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">Order Details</h2>
+        <div class="row">
+            <p class="col-12 text-right">Order ID : #<b id="orderID"></b> </p>  
+        </div>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="orderDetails">
+            </tbody>
+        </table>
+        <div class="row">  
+            <p class="col-6">Delivery Status : <b class="text-info" id="status"></b> </p> 
+            <p class="col-6 text-right">Subtotal : <b class="" id="total"></b> </p> 
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script> 
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script> 
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Extract order_id from URL
+            let urlParams = new URLSearchParams(window.location.search);
+            let orderId = urlParams.get('order_id');
+
+                    // Connect to the Socket.IO server
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Verify connection and listen for the 'order_delivered' event
+        socket.on('connect', function() {
+            console.log('Connected to Socket.IO server');
+
+            // Optionally join a specific room
+            // Replace `user_id` with the actual user ID
+            socket.emit('join', 'common');
+        });
+
+        // Listen for the 'order_delivered' event
+        socket.on('order_delivered', function(data) {
+            console.log("Order Delivered Event Triggered", data);
+            if(orderId === data.order_id) {
+                alert(`Order has been ${data.status}!`);
+                $("#status").html(data.status);
+            }
+        });
+
+        socket.on('delivery_order_delivered', function(data) {
+            console.log("Order Delivered Event Triggered", data);
+            if(orderId === data.order_id) {
+                alert(`Order has been ${data.status}!`);
+                location.href = "./menu";
+            }
+        });
+
+            // Fetch order details
+            $.ajax({
+                url: `/order_details/${orderId}`,
+                method: 'GET',
+                success: function(data) {
+                    $("#orderID").html(data.order_id);
+                    $("#status").html(data.delivery_status);
+                    $("#total").html(data.subtotal);
+                    const orderData = JSON.parse(data.order_data_in_json);                    
+                    var details = "";
+                    orderData.forEach((element, index) => {
+                        details += `
+                            <tr>
+                                <td id="order-id">${++index}</td>
+                                <td id="order-subtotal">${element.name}</td>
+                                <td id="order-subtotal">${element.price}</td>
+                                <td id="order-subtotal">${element.quantity}</td>
+                                <td id="order-subtotal">${element.total}</td>
+                            </tr>`
+                    });
+                    $("#orderDetails").append(details);
+                },
+                error: function() {
+                    alert('Failed to fetch order details.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+</head>
+<body>
+
+    <div class="container-fluid menu-list"> 
+        <h2 class="text-center mt-4 mb-4">Food Menu</h2>
+        <div class="row">
+            {% if products %}
+                {% for product in products %}
+            <div class="col-md-4"> 
+                <div class="menu-info mt-4"> 
+                    <div class="row">
+                        <div class="col-md-7">
+                            <p class="menu-name">{{ product[1] }}</p>
+                            <p class="menu-price">&#8377; {{ product[3] }}</p>
+                            <p class="menu-type text-info">{{ product[4] }}</p>
+                            <div class="quantity-container d-flex">
+                                <p class="quantity-btn minus-btn main-center" data-price="{{ product[3] }}" data-name="{{ product[1] }}" data-pid="{{ product[0] }}">-</p>
+                                <input type="text" class="quantityElem" id="quantity-{{ product[0] }}" value="0" readonly>
+                                <p class="quantity-btn plus-btn main-center" data-price="{{ product[3] }}" data-name="{{ product[1] }}" data-pid="{{ product[0] }}">+</p>
+                            </div>
+                        </div> 
+                        <div class="col-md-5">
+                            <div class="position-relative">
+                                <img class="menu-img" src="{{ product[2] }}" alt="{{ product[1] }}"> 
+                            </div>
+                        </div>
+                    </div> 
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center col-12">No products found in this category.</p>
+        {% endif %}
+        </div>
+        <div class="footer-info">
+            <p class="order-count-info mb-0"><span class="order-count">0</span> item added</p>
+            <div class="footer-data main-center">
+                <p class="order-price-info mb-0 mr-3">Price : &#8377;<span class="order-price">0</span></p>
+                <button class="place-btn" >Place Order</button>
+            </div>
+        </div>
+    </div> 
+    <!-- The Modal -->
+    <!-- The Modal -->
+    <div class="modal fade" id="myModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+        
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Order Confirmation</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+        
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <!-- Order details will be inserted here dynamically -->
+                </div>
+        
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info">Confirm Order</button>
+                </div>
+        
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script> 
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script> 
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    <script>
+
+        // Function to update modal content
+        function updateModal() {
+            let modalBody = $('.modal-body');
+            modalBody.empty(); // Clear existing content
+            let overallTotal = 0;
+
+            // Create a row for each product
+            productQuantities.forEach(item => {
+                let productRow = `<div class="confirmation-data d-flex">
+                                    <p>${item.name} X ${item.quantity}</p>
+                                    <p>&#8377;<span class="confirmation-price">${item.total}</span></p>
+                                </div>`;
+                modalBody.append(productRow);
+                overallTotal += parseFloat(item.total);
+            });
+
+            // Add overall total
+            let overallRow = `<div class="confirmation-data d-flex">
+                                <h5>Overall</h5>
+                                <h5>&#8377;<span class="confirmation-price">${overallTotal}</span></h5>
+                            </div>`;
+            modalBody.append(overallRow);
+        }
+
+        // Show modal and update its content
+        $('.place-btn').click(function() { 
+            if(productQuantities.length == 0 ){ alert("No orders found!!!"); return;};
+            updateModal();
+            $('#myModal').modal('show');
+        });
+
+        let productQuantities = [];
+        
+        // Update the footer with total items and total price
+        // function updateFooter() {
+        //     let totalItems = 0;
+        //     let totalPrice = 0;
+        //     productQuantities.forEach(item => {
+        //         totalItems += parseFloat(item.quantity);
+        //         totalPrice += parseFloat(item.total);
+        //     });
+        //     $('.order-count').text(totalItems);
+        //     $('.order-price').text(totalPrice);
+        // }
+    
+        // Increment quantity
+        $('.plus-btn').click(function() {
+            let productId = $(this).data('pid'); 
+            let price = $(this).data('price'); 
+            let name = $(this).data('name'); 
+            
+            // Find the product in the array
+            let product = productQuantities.find(item => item.id === productId);
+    
+            if (product) {
+                // If the product exists, increment its quantity and update total
+                product.quantity++;
+                product.total = product.quantity * price;
+            } else {
+                // If the product does not exist, add a new object to the array
+                productQuantities.push({
+                    id: productId,
+                    name: name,
+                    price: price,
+                    quantity: 1,
+                    total: price
+                });
+            }
+    
+            $('#quantity-' + productId).val(product ? product.quantity : 1);
+            
+            updateFooter(); // Update footer totals
+        });
+        
+        // Decrement quantity
+        $('.minus-btn').click(function() {
+            let productId = $(this).data('pid');
+            let price = $(this).data('price'); 
+            let name = $(this).data('name'); 
+            
+            // Find the product in the array
+            let productIndex = productQuantities.findIndex(item => item.id === productId);
+    
+            if (productIndex !== -1) {
+                let product = productQuantities[productIndex];
+                
+                if (product.quantity > 0) {
+                    // Decrease the quantity and update the total
+                    product.quantity--;
+                    product.total = product.quantity * price;
+    
+                    $('#quantity-' + productId).val(product.quantity);
+                    
+                    // If the quantity is 0, remove the product from the array
+                    if (product.quantity === 0) {
+                        productQuantities.splice(productIndex, 1);
+                    }
+                }
+            }
+            updateFooter(); // Update footer totals
+        });
+
+        // Function to update the footer
+        function updateFooter() {
+            let totalItems = 0;
+            let totalPrice = 0;
+            productQuantities.forEach(item => {
+                totalItems += parseFloat(item.quantity);
+                totalPrice += parseFloat(item.total);
+            });
+            $('.order-count').text(totalItems);
+            $('.order-price').text(totalPrice.toFixed(2)); // Ensure total price is a number
+        }
+
+    // Place Order button click handler 
+    $('.btn-info').click(function() {
+        if (productQuantities.length === 0) {
+            alert("No orders found!");
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '/place_order',
+            contentType: 'application/json',
+            data: JSON.stringify({ productQuantities: productQuantities }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Order placed successfully!');
+                    window.location.href = `/order_details_page?order_id=${response.order_id}`;
+                } else {
+                    alert('Failed to place order.');
+                }
+            },
+            error: function() {
+                alert('Error occurred while placing order.');
+            }
+        });
+    });
+
+        
+    </script>
+    
+    
+</body>
+</html> 

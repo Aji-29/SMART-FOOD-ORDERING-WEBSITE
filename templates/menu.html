@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+</head>
+<body>
+
+    <div class="container menu-list"> 
+        <h2 class="text-center mt-4 mb-4">Food Category</h2>
+        <div class="row" id="menu-items"> 
+        </div> 
+    </div> 
+    <!-- The Modal -->
+    <div class="modal fade" id="myModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+        
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Order Confirmation</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+        
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12 overall-confirmation-data">
+                            <div class="confirmation-data d-flex">
+                                <p>Chicken Briyani X 1</p>
+                                <p> &#8377;<span class="confirmation-price">200</span></p>
+                            </div>
+                            <div class="confirmation-data d-flex">
+                                <p>Mutton Briyani X 2</p>
+                                <p> &#8377;<span class="confirmation-price">500</span></p>
+                            </div>
+                        </div>
+                        <div class="col-12"> 
+                            <div class="confirmation-data d-flex">
+                                <h5>Overall</h5>
+                                <h5> &#8377;<span class="confirmation-price">700</span></h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info">Confirm Order</button>
+                </div>
+        
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script> 
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script> 
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+
+
+    <script>
+        $(document).ready(function() {
+
+            // Fetch categories using AJAX
+            $.ajax({
+                url: "{{ url_for('get_active_categories') }}",
+                method: 'GET',
+                success: function(response) {
+                    let menuItems = '';
+                    response.forEach(function(category) {
+                        menuItems += `
+                            <div class="col-md-6"> 
+                                <a class="url-required" href="./product/${category.cat_id}">
+                                <div class="menu-info mt-4 img-div" style="background-image:url(${category.img});background-repeat:no-repeat;"> 
+                                    <div class="row">
+                                        <div class="col-md-7">
+                                            <p class="menu-name ">${category.name}</p> 
+                                        </div>
+                                    </div> 
+                                </div>
+                                </a>
+                            </div>
+                        `;
+                    });
+                    $('#menu-items').html(menuItems);
+                },
+                error: function(error) {
+                    console.error('Error fetching categories:', error);
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

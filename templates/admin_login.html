@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_login.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">Admin Login</h2>
+        <form method="post" action="{{ url_for('adminlogin') }}">
+            <div class="form-control">
+                <input type="text" class="form-control" id="name" name="name" required placeholder="User Name" autocomplete="off">
+            </div>
+            <div class="form-control">
+                <input type="password" class="form-control" id="password" name="password" required placeholder="Password">
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button> 
+        </form>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert mt-3">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body> 
+</html>
